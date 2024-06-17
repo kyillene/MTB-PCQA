@@ -5,14 +5,17 @@ from scipy.stats import pearsonr as plcc
 from scipy.stats import spearmanr as srocc
 import scipy.optimize as opt
 
-
+# mapping function
 def f(x, a, b, c, d):
     return a / (1. + np.exp(-c * (x - d))) + b
 
-
+# import the ground truth and the predictions
 gt = pd.read_csv('data/BASICS_testset_mos_std_ci.csv')
 preds = pd.read_csv('data/pcqm_predictions.csv')
+# filter the metric predictions based on the ground truth
 preds = preds[preds['ppc'].isin(gt['ppc'])]
+
+# fit the mapping function
 a = opt.curve_fit(f, preds['predictions'], gt['mos'], method="trf")[0]
 preds_mapping = f(preds['predictions'], a[0], a[1], a[2], a[3])
 preds['predictions'] = preds_mapping
@@ -24,12 +27,13 @@ codec = 'predlift'  # alternatives are: 'geocnn', 'predlift', 'raht', 'vpcc' in 
 gt = gt[gt['ppc'].str.contains(codec)]
 preds = preds[preds['ppc'].str.contains(codec)]
 
+# calculate the Spearman and Pearson correlation coefficients
 srocc_score = srocc(preds['predictions'], gt['mos'])
 plcc_score = plcc(preds['predictions'], gt['mos'])
 print('SROCC: ', srocc_score[0])
 print('PLCC: ', plcc_score[0])
 
-
+# plot the distributions after mapping with SROCC and PLCC values on the title
 fig, ax = plt.subplots(figsize=(11, 10), dpi=200)
 ax.scatter(preds['predictions'], gt['mos'], s=10, c='b', alpha=0.75, zorder=3)
 ax.set_xlabel('Predicted Quality Score (with mapping)', fontsize=13)
